@@ -50,12 +50,15 @@ export default function ClipCard({ clip, onDelete }) {
                 </span>
             </div>
 
-            <div className="clip-content">
+            <div className="clip-content" onClick={handleCopy} style={{ cursor: 'pointer' }} title="Click to copy">
                 {clip.type === 'TEXT' ? (
                     <div>
                         <div className={`clip-text ${expanded ? 'expanded' : ''}`}>{clip.content}</div>
                         {isLongText && (
-                            <button className="btn-secondary" onClick={() => setExpanded(!expanded)} style={{marginTop: 8, fontSize: '0.8rem', padding: '4px 8px', border: 'none', cursor: 'pointer', background: 'rgba(255, 218, 185, 0.1)', color: 'var(--clr-accent)', borderRadius: '4px'}}>
+                            <button className="btn-secondary" onClick={(e) => {
+                                e.stopPropagation();
+                                setExpanded(!expanded);
+                            }} style={{marginTop: 8, fontSize: '0.8rem', padding: '4px 8px', border: 'none', cursor: 'pointer', background: 'rgba(255, 218, 185, 0.1)', color: 'var(--clr-accent)', borderRadius: '4px'}}>
                                 {expanded ? 'View Less' : 'View More'}
                             </button>
                         )}

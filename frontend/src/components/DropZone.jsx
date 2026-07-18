@@ -55,6 +55,19 @@ export default function DropZone({ onClipAdd }) {
         }
     };
 
+    const fileInputRef = useRef(null);
+
+    const handleFileSelect = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => onClipAdd(event.target.result, 'IMAGE');
+                reader.readAsDataURL(file);
+            }
+        }
+    };
+
     return (
         <div 
             ref={dropRef}
@@ -62,10 +75,19 @@ export default function DropZone({ onClipAdd }) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            style={{ cursor: 'pointer' }}
         >
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                accept="image/*"
+                onChange={handleFileSelect}
+            />
             <div className="drop-content">
                 <Upload size={48} className="drop-icon" />
-                <h2 className="drop-text">Drop or Paste</h2>
+                <h2 className="drop-text">Drop, Paste or Click</h2>
                 <p className="drop-subtext">Images and text sync instantly across all devices.</p>
             </div>
         </div>
