@@ -28,7 +28,7 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
                 setTimeout(() => setCopied(false), 2000);
             } else if (clip.type === 'IMAGE' && isReady) {
                 if (navigator.clipboard?.write) {
-                    const res = await fetch(clip.content);
+                    const res = await fetch(clip.content + '?cors=1');
                     const blob = await res.blob();
                     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
                     setCopied(true);
@@ -47,7 +47,8 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
 
     const handleDownload = async () => {
         try {
-            const res = await fetch(clip.content);
+            // Append ?cors=1 to bust Cloudflare cache if it cached a non-CORS response previously
+            const res = await fetch(clip.content + '?cors=1');
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -96,6 +97,7 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
                     className="clip-image"
                     onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
                     title="Click to view full size"
+                    crossOrigin="anonymous"
                 />
             </div>
         );
@@ -167,7 +169,7 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
                         <button className="lightbox-close" onClick={() => setLightboxOpen(false)}>
                             <X size={24} />
                         </button>
-                        <img src={clip.content} alt="Full size" className="lightbox-img" />
+                        <img src={clip.content} alt="Full size" className="lightbox-img" crossOrigin="anonymous" />
                         <div className="lightbox-actions">
                             <button className="lightbox-btn" onClick={handleDownload}>
                                 <Download size={16} /> Download
