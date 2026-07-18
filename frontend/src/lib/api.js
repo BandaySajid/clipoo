@@ -4,6 +4,7 @@ export const API_BASE = import.meta.env.DEV ? `http://${window.location.hostname
 export async function apiFetch(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`;
     
+    options.credentials = 'include';
     options.headers = {
         ...options.headers,
         'X-Room-ID': localStorage.getItem('clipoo_room') || 'default'

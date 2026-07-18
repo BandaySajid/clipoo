@@ -12,7 +12,7 @@ export function useSSE(room) {
         let reconnectTimeout;
 
         function connect() {
-            es = new EventSource(`${API_BASE}/api/stream?room=${encodeURIComponent(room)}`);
+            es = new EventSource(`${API_BASE}/api/stream?room=${encodeURIComponent(room)}`, { withCredentials: true });
 
             es.onopen = () => setConnected(true);
 
