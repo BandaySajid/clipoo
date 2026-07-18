@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, Plus } from 'lucide-react';
 
 export default function DropZone({ onClipAdd }) {
     const [isDragging, setIsDragging] = useState(false);
@@ -83,14 +83,12 @@ export default function DropZone({ onClipAdd }) {
                 if (text.trim()) onClipAdd(text, 'TEXT');
             }
         } catch (err) {
-            // User denied clipboard permission — silently ignore
             console.warn('Clipboard read denied:', err.message);
         }
     };
 
     return (
-        <div className="dropzone-wrapper">
-            {/* Hidden file input — triggered by the mobile button */}
+        <div className="flex flex-col gap-4 relative w-full group">
             <input
                 type="file"
                 ref={fileInputRef}
@@ -99,30 +97,35 @@ export default function DropZone({ onClipAdd }) {
                 onChange={handleFileSelect}
             />
 
-            {/* Main drop area — no click handler here so mobile paste text works */}
             <div
                 ref={dropRef}
-                className={`drop-target ${isDragging ? 'drag-active' : ''}`}
+                className={`
+                    w-full min-h-[160px] rounded-3xl border-2 border-dashed 
+                    flex flex-col items-center justify-center p-8 text-center cursor-pointer
+                    transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+                    ${isDragging ? 'border-accent bg-accent/5 scale-[1.02]' : 'border-white/10 bg-white/5 hover:border-accent/50 hover:bg-white/10'}
+                `}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={handleClick}
-                style={{ cursor: 'pointer' }}
             >
-                <div className="drop-content">
-                    <Upload size={40} className="drop-icon" />
-                    <h2 className="drop-text">Drop or Paste</h2>
-                    <p className="drop-subtext">Text and images sync instantly to all devices.</p>
+                <div className={`
+                    w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300
+                    ${isDragging ? 'bg-accent/20 text-accent border border-accent/40 scale-110 shadow-[0_0_20px_rgba(0,229,255,0.3)]' : 'bg-white/10 text-foreground group-hover:bg-white/20 group-hover:scale-110'}
+                `}>
+                    <Plus size={24} />
                 </div>
+                <h2 className="text-xl font-sans font-bold text-foreground mb-2">Drop or Paste</h2>
+                <p className="text-foreground/50 text-sm max-w-[200px] leading-relaxed">Text and images sync instantly to all devices.</p>
             </div>
 
-            {/* Separate upload button — always visible, especially useful on mobile */}
             <button
-                className="upload-file-btn"
+                className="self-start md:self-center flex items-center gap-2 px-6 py-3 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/20 text-accent font-medium text-sm transition-all btn-tactile w-full md:w-auto justify-center"
                 onClick={() => fileInputRef.current?.click()}
                 title="Upload image from device"
             >
-                <Upload size={18} />
+                <Upload size={16} />
                 <span>Upload Image</span>
             </button>
         </div>

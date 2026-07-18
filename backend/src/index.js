@@ -33,7 +33,13 @@ const PORT = process.env.PORT || 8001;
 const app = new Hono();
 
 app.use('*', cors({
-    origin: 'https://clip.sajidbanday.me',
+    origin: (origin) => {
+        if (!origin) return 'https://clip.sajidbanday.me';
+        if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin.includes('sajidbanday.me')) {
+            return origin;
+        }
+        return 'https://clip.sajidbanday.me';
+    },
     credentials: true,
     allowHeaders: ['Content-Type', 'Authorization', 'X-Room-ID', 'Accept'],
     allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],

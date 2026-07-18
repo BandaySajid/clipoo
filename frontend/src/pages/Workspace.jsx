@@ -14,32 +14,35 @@ export default function Workspace({ clips, addClip, deleteClip }) {
     });
 
     return (
-        <div id="workspace-view">
-            <div className="search-bar">
-                <Search className="search-icon" />
+        <div className="w-full max-w-3xl mx-auto flex flex-col gap-8 pb-32">
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40 w-5 h-5 pointer-events-none" />
                 <input 
                     type="text" 
                     placeholder="Search clips..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-zinc-900/50 backdrop-blur-md border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-foreground placeholder-foreground/40 outline-none focus:border-accent focus:bg-zinc-900/80 transition-all duration-200"
                 />
             </div>
             
             <DropZone onClipAdd={addClip} />
             
-            <div className="clips-grid">
+            <div className="flex flex-col gap-6">
                 {filteredClips.map((clip, index) => (
                     <ClipCard key={clip.id} clip={clip} onDelete={deleteClip} isLatest={index === 0} />
                 ))}
+                
                 {filteredClips.length === 0 && clips.length > 0 && (
-                    <div style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.5}}>
+                    <div className="text-center text-foreground/50 py-12 border border-dashed border-white/10 rounded-2xl">
                         No clips match your search.
                     </div>
                 )}
+                
                 {clips.length === 0 && (
-                    <div style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.5, padding: '40px 0'}}>
-                        <p style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Your clipboard is empty.</p>
-                        <p style={{ fontSize: '0.9rem' }}>Copy and paste text or images to get started!</p>
+                    <div className="text-center text-foreground/50 py-20 border border-dashed border-white/10 rounded-2xl bg-white/5 flex flex-col items-center gap-2">
+                        <p className="text-xl font-sans font-medium text-foreground">Your clipboard is empty</p>
+                        <p className="text-sm">Copy and paste text or images to get started.</p>
                     </div>
                 )}
             </div>
