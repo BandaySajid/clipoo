@@ -50,8 +50,42 @@ export default function DropZone({ onClipAdd }) {
             reader.onload = (event) => onClipAdd(event.target.result, 'IMAGE');
             reader.readAsDataURL(file);
         }
-        // Reset so same file can be selected again
         e.target.value = '';
+    };
+
+    const handleClick = async () => {
+        try {
+            if (!navigator.clipboard) return;
+
+            // Try reading full clipboard (images + text)
+            if (navigator.clipboard.read) {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    // Image first
+                    const imageType = item.types.find(t => t.startsWith('image/'));
+                    if (imageType) {
+                        const blob = await item.getType(imageType);
+                        const reader = new FileReader();
+                        reader.onload = (e) => onClipAdd(e.target.result, 'IMAGE');
+                        reader.readAsDataURL(blob);
+                        return;
+                    }
+                    // Text
+                    if (item.types.includes('text/plain')) {
+                        const blob = await item.getType('text/plain');
+                        const text = await blob.text();
+                        if (text.trim()) { onClipAdd(text, 'TEXT'); return; }
+                    }
+                }
+            } else if (navigator.clipboard.readText) {
+                // Fallback: text only
+                const text = await navigator.clipboard.readText();
+                if (text.trim()) onClipAdd(text, 'TEXT');
+            }
+        } catch (err) {
+            // User denied clipboard permission — silently ignore
+            console.warn('Clipboard read denied:', err.message);
+        }
     };
 
     return (
@@ -72,6 +106,8 @@ export default function DropZone({ onClipAdd }) {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                onClick={handleClick}
+                style={{ cursor: 'pointer' }}
             >
                 <div className="drop-content">
                     <Upload size={40} className="drop-icon" />
