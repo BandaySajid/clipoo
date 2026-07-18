@@ -37,7 +37,7 @@ export function useSSE(room) {
             clearTimeout(reconnectTimeout);
             if (es) es.close();
         };
-    }, []);
+    }, [room]);
 
     return { connected, data };
 }
