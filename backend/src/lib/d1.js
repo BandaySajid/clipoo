@@ -1,17 +1,12 @@
-const {
-    CLOUDFLARE_ACCOUNT_ID,
-    CLOUDFLARE_API_TOKEN,
-} = process.env;
-
 const D1_DB_ID = process.env.D1_DB_ID || 'aa291e37-c4b8-4e19-9b2d-76d4c5fe35c4';
 
 export async function d1Query(sql, params = []) {
     const res = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DB_ID}/query`,
+        `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DB_ID}/query`,
         {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ sql, params }),
