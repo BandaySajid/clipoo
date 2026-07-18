@@ -1,13 +1,15 @@
-import { Copy, Check, Trash2, ImageIcon, Loader } from 'lucide-react';
+import { Copy, Check, Trash2, ImageIcon, Loader, Download, Maximize2, X } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ClipCard({ clip, onDelete, isLatest }) {
     const [copied, setCopied] = useState(false);
     const [expanded, setExpanded] = useState(false);
-    const [imageRevealed, setImageRevealed] = useState(isLatest); // auto-show latest image
+    const [imageRevealed, setImageRevealed] = useState(isLatest);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
 
-    const isLongText = clip.type === 'TEXT' && clip.content.length > 250;
+    const isLongText = clip.type === 'TEXT' && clip.content?.length > 250;
     const isDataUrl = clip.content?.startsWith('data:');
+    const isReady = clip.type === 'IMAGE' && !clip.uploading && !clip.failed && clip.content;
 
     const handleCopy = async () => {
         try {
@@ -24,11 +26,16 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
                 }
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
-            } else if (clip.type === 'IMAGE') {
+            } else if (clip.type === 'IMAGE' && isReady) {
                 if (navigator.clipboard?.write) {
                     const res = await fetch(clip.content);
                     const blob = await res.blob();
                     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                } else {
+                    // Fallback: copy the URL as text
+                    await navigator.clipboard.writeText(clip.content);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                 }
@@ -38,25 +45,40 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
         }
     };
 
+    const handleDownload = async () => {
+        try {
+            const res = await fetch(clip.content);
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const ext = blob.type.split('/')[1] || 'png';
+            a.href = url;
+            a.download = `clipoo-${clip.id}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Download failed', err);
+        }
+    };
+
     const renderImageContent = () => {
-        // While uploading, show a shimmer with the data URL preview
-        if (clip.uploading || (clip.pending && isDataUrl)) {
+        // While uploading — show spinner placeholder (no image yet)
+        if (clip.uploading || (!clip.content && !clip.failed)) {
             return (
-                <div className="image-upload-preview">
-                    <img src={clip.content} alt="Uploading..." className="clip-image uploading-img" />
-                    <div className="upload-overlay">
-                        <Loader size={20} className="spin" />
-                        <span>Uploading to cloud...</span>
-                    </div>
+                <div className="image-uploading-placeholder">
+                    <Loader size={22} className="spin" />
+                    <span>Image uploading...</span>
                 </div>
             );
         }
 
         if (clip.failed) {
-            return <div className="upload-failed">Upload failed. Image shown locally only.</div>;
+            return <div className="upload-failed">Upload failed. Try again.</div>;
         }
 
-        // Older images: show a "View Image" button instead of loading immediately
+        // Older images: lazy reveal
         if (!imageRevealed) {
             return (
                 <button className="reveal-image-btn" onClick={(e) => { e.stopPropagation(); setImageRevealed(true); }}>
@@ -66,53 +88,97 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
             );
         }
 
-        return <img src={clip.content} alt="Clipped image" className="clip-image" />;
+        return (
+            <div className="clip-image-wrapper">
+                <img
+                    src={clip.content}
+                    alt="Clipped"
+                    className="clip-image"
+                    onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
+                    title="Click to view full size"
+                />
+            </div>
+        );
     };
 
     return (
-        <div className={`clip-card ${clip.pending ? 'clip-pending' : ''}`}>
-            <div className="clip-meta">
-                <span className="clip-type">{clip.type}</span>
-                <span>
-                    {new Date(clip.created_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' })} IST
-                    <span className="device-type-badge" style={{ marginLeft: 8 }}>{clip.device}</span>
-                </span>
-            </div>
+        <>
+            <div className={`clip-card ${clip.pending ? 'clip-pending' : ''}`}>
+                <div className="clip-meta">
+                    <span className="clip-type">{clip.type}</span>
+                    <span>
+                        {new Date(clip.created_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' })} IST
+                        <span className="device-type-badge" style={{ marginLeft: 8 }}>{clip.device}</span>
+                    </span>
+                </div>
 
-            <div
-                className="clip-content"
-                onClick={clip.type === 'TEXT' ? handleCopy : undefined}
-                style={clip.type === 'TEXT' ? { cursor: 'pointer' } : undefined}
-                title={clip.type === 'TEXT' ? 'Click to copy' : undefined}
-            >
-                {clip.type === 'TEXT' ? (
-                    <div>
-                        <div className={`clip-text ${expanded ? 'expanded' : ''}`}>{clip.content}</div>
-                        {isLongText && (
-                            <button
-                                className="btn-secondary"
-                                onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                                style={{ marginTop: 8, fontSize: '0.8rem', padding: '4px 8px', border: 'none', cursor: 'pointer', background: 'rgba(255, 218, 185, 0.1)', color: 'var(--clr-accent)', borderRadius: '4px' }}
-                            >
-                                {expanded ? 'View Less' : 'View More'}
+                <div
+                    className="clip-content"
+                    onClick={clip.type === 'TEXT' ? handleCopy : undefined}
+                    style={clip.type === 'TEXT' ? { cursor: 'pointer' } : undefined}
+                    title={clip.type === 'TEXT' ? 'Click to copy' : undefined}
+                >
+                    {clip.type === 'TEXT' ? (
+                        <div>
+                            <div className={`clip-text ${expanded ? 'expanded' : ''}`}>{clip.content}</div>
+                            {isLongText && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+                                    style={{ marginTop: 8, fontSize: '0.8rem', padding: '4px 8px', border: 'none', cursor: 'pointer', background: 'rgba(255, 218, 185, 0.1)', color: 'var(--clr-accent)', borderRadius: '4px' }}
+                                >
+                                    {expanded ? 'View Less' : 'View More'}
+                                </button>
+                            )}
+                        </div>
+                    ) : renderImageContent()}
+                </div>
+
+                <div className="clip-actions">
+                    <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
+                        {isReady && imageRevealed && (
+                            <>
+                                <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }} title="View full size">
+                                    <Maximize2 size={16} />
+                                </button>
+                                <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleDownload(); }} title="Download">
+                                    <Download size={16} />
+                                </button>
+                                <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleCopy(); }} title="Copy image">
+                                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                                </button>
+                            </>
+                        )}
+                        {clip.type === 'TEXT' && (
+                            <button className="btn-icon" onClick={handleCopy} title="Copy">
+                                {copied ? <Check size={16} /> : <Copy size={16} />}
                             </button>
                         )}
-                    </div>
-                ) : renderImageContent()}
-            </div>
-
-            <div className="clip-actions">
-                <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end' }}>
-                    {!clip.uploading && !clip.failed && (
-                        <button className="btn-icon" onClick={handleCopy} title="Copy">
-                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                        <button className="btn-icon delete" onClick={() => onDelete(clip.id)} title="Delete">
+                            <Trash2 size={16} />
                         </button>
-                    )}
-                    <button className="btn-icon delete" onClick={() => onDelete(clip.id)} title="Delete">
-                        <Trash2 size={16} />
-                    </button>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            {/* Lightbox */}
+            {lightboxOpen && isReady && (
+                <div className="lightbox-overlay" onClick={() => setLightboxOpen(false)}>
+                    <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="lightbox-close" onClick={() => setLightboxOpen(false)}>
+                            <X size={24} />
+                        </button>
+                        <img src={clip.content} alt="Full size" className="lightbox-img" />
+                        <div className="lightbox-actions">
+                            <button className="lightbox-btn" onClick={handleDownload}>
+                                <Download size={16} /> Download
+                            </button>
+                            <button className="lightbox-btn" onClick={handleCopy}>
+                                {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Image</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
