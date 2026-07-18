@@ -486,3 +486,81 @@ p { line-height: 1.5; font-weight: 300; }
 .btn-setup:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255,218,185,0.2); }
 .btn-setup:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* ─── DropZone Wrapper & Upload Button ───────────────────────────────────── */
+.dropzone-wrapper {
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.dropzone-wrapper .drop-target { margin-bottom: 0; }
+
+.upload-file-btn {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 218, 185, 0.08);
+    border: 1px solid rgba(255, 218, 185, 0.25);
+    color: var(--clr-accent);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.upload-file-btn:hover {
+    background: rgba(255, 218, 185, 0.15);
+    border-color: var(--clr-accent);
+    transform: translateY(-1px);
+}
+.upload-file-btn:active { transform: translateY(0); }
+
+@media (max-width: 768px) {
+    .upload-file-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 20px;
+        font-size: 1rem;
+    }
+}
+
+/* ─── Image Upload States ─────────────────────────────────────────────────── */
+.clip-pending { opacity: 0.85; }
+
+.image-upload-preview { position: relative; display: inline-block; width: 100%; }
+.uploading-img { filter: brightness(0.6); }
+.upload-overlay {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(0, 0, 0, 0.6); color: white;
+    padding: 8px 14px; border-radius: 8px;
+    font-family: var(--font-display); font-size: 0.85rem;
+    backdrop-filter: blur(4px); white-space: nowrap;
+}
+
+.upload-failed {
+    font-size: 0.85rem; color: var(--clr-danger);
+    padding: 8px; background: rgba(239, 68, 68, 0.08);
+    border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ─── Lazy Image Reveal Button ────────────────────────────────────────────── */
+.reveal-image-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255, 218, 185, 0.06);
+    border: 1px dashed rgba(255, 218, 185, 0.3);
+    color: var(--clr-accent); padding: 14px 20px;
+    border-radius: 8px; font-family: var(--font-display);
+    font-size: 0.9rem; cursor: pointer;
+    transition: all var(--transition-fast);
+    width: 100%; justify-content: center;
+}
+.reveal-image-btn:hover { background: rgba(255, 218, 185, 0.12); border-style: solid; }
+
+/* ─── Spinner ─────────────────────────────────────────────────────────────── */
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

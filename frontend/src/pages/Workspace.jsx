@@ -28,8 +28,8 @@ export default function Workspace({ clips, addClip, deleteClip }) {
             <DropZone onClipAdd={addClip} />
             
             <div className="clips-grid">
-                {filteredClips.map(clip => (
-                    <ClipCard key={clip.id} clip={clip} onDelete={deleteClip} />
+                {filteredClips.map((clip, index) => (
+                    <ClipCard key={clip.id} clip={clip} onDelete={deleteClip} isLatest={index === 0} />
                 ))}
                 {filteredClips.length === 0 && clips.length > 0 && (
                     <div style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.5}}>
