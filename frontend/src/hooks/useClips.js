@@ -57,12 +57,12 @@ export function useClips(sseData) {
         const device = localStorage.getItem('clipoo_device_name') || 'Unknown';
 
         if (type === 'IMAGE') {
+            // Use a proper nanoId-like string since the server will use this
+            const id = Date.now().toString(36) + Math.random().toString(36).substring(2);
+            
             // For images: show local preview immediately while server uploads to R2.
-            // The server will broadcast clip_uploading to other devices,
-            // and new_clip when the R2 URL is ready.
-            const tempId = 'temp_' + Date.now();
             const localPreview = {
-                id: tempId,
+                id,
                 type: 'IMAGE',
                 content, // local data URL for immediate preview on uploader's device
                 device,
@@ -72,22 +72,31 @@ export function useClips(sseData) {
             };
             setClips(prev => [localPreview, ...prev]);
 
+            // Fire announce immediately to tell other devices "I'm starting an upload"
+            // We don't await this so the upload starts immediately after
+            apiFetch('/api/clip/announce', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, device }),
+            }).catch(e => console.error('Failed to announce upload', e));
+
             try {
+                // Send the heavy payload (can take seconds on slow networks)
                 const { clip } = await apiFetch('/api/clip', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content, type, device }),
+                    body: JSON.stringify({ id, content, type, device }),
                 });
                 // API returned the real R2 clip. Remove local preview — 
                 // SSE new_clip will have already swapped the server placeholder.
                 setClips(prev => prev
-                    .filter(c => c.id !== tempId)
+                    .filter(c => c.id !== id)
                     .map(c => c.id === clip.id ? clip : c)
                 );
             } catch (e) {
                 console.error('Failed to upload image', e);
                 setClips(prev => prev.map(c =>
-                    c.id === tempId ? { ...c, uploading: false, failed: true } : c
+                    c.id === id ? { ...c, uploading: false, failed: true } : c
                 ));
             }
         } else {

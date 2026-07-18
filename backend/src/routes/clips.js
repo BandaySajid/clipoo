@@ -7,10 +7,20 @@ import { broadcast } from '../lib/broadcast.js';
 
 const app = new Hono();
 
+app.post('/announce', async (c) => {
+    const room = c.req.header('X-Room-ID') || 'default';
+    const body = await c.req.json();
+    if (!body.id || !body.device) return c.json({ success: false }, 400);
+
+    const placeholder = { id: body.id, type: 'IMAGE', content: null, device: body.device, created_at: Date.now(), room, uploading: true };
+    broadcast(room, { type: 'clip_uploading', clip: placeholder });
+    return c.json({ success: true });
+});
+
 app.post('/', async (c) => {
     const room = c.req.header('X-Room-ID') || 'default';
     const body = await c.req.json();
-    const id = nanoId();
+    const id = body.id || nanoId();
     const created_at = Date.now();
     const type = body.type;
     const content = body.content;
