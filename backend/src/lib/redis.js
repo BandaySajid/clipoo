@@ -63,6 +63,23 @@ export async function removeClipFromCache(room, id) {
     }
 }
 
+export async function updateClipInCache(room, updatedClip) {
+    const key = getClipsKey(room);
+    const all = await redis.lrange(key, 0, -1);
+    for (const raw of all) {
+        try {
+            const c = JSON.parse(raw);
+            if (c.id === updatedClip.id) {
+                // Replace old entry atomically: remove then re-insert in same position
+                const idx = all.indexOf(raw);
+                await redis.lset(key, idx, JSON.stringify(updatedClip));
+                break;
+            }
+        } catch(e) {}
+    }
+}
+
+
 export async function getDevicesFromCache(room) {
     const key = getDevicesKey(room);
     try {
