@@ -45,9 +45,9 @@ await initDB();
 
 console.log(`🚀 Clipoo Backend on http://0.0.0.0:${PORT}`);
 
-export default {
+Bun.serve({
     port: PORT,
     hostname: '0.0.0.0',
     idleTimeout: 0,
     fetch: app.fetch,
-};
+});
