@@ -28,9 +28,28 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
                 setTimeout(() => setCopied(false), 2000);
             } else if (clip.type === 'IMAGE' && isReady) {
                 if (navigator.clipboard?.write) {
-                    const res = await fetch(clip.content + '?cors=1');
-                    const blob = await res.blob();
-                    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+                    // Use a Promise to prevent "Document is not focused" error during async fetch
+                    const blobPromise = fetch(clip.content + '?cors=1')
+                        .then(r => r.blob())
+                        .then(blob => new Promise((resolve, reject) => {
+                            // Chrome only supports image/png on clipboard, so convert if needed
+                            if (blob.type === 'image/png') return resolve(blob);
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                canvas.getContext('2d').drawImage(img, 0, 0);
+                                canvas.toBlob(resolve, 'image/png');
+                            };
+                            img.onerror = reject;
+                            img.src = URL.createObjectURL(blob);
+                        }));
+
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blobPromise })
+                    ]);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                 } else {
@@ -179,6 +198,13 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Toast Notification */}
+            {copied && (
+                <div className="clipoo-toast">
+                    <Check size={16} /> Copied to clipboard!
                 </div>
             )}
         </>
