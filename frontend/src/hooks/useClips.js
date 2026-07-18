@@ -87,12 +87,15 @@ export function useClips(sseData) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id, content, type, device }),
                 });
-                // API returned the real R2 clip. Remove local preview — 
-                // SSE new_clip will have already swapped the server placeholder.
-                setClips(prev => prev
-                    .filter(c => c.id !== id)
-                    .map(c => c.id === clip.id ? clip : c)
-                );
+                // API returned the real R2 clip. Swap the local preview for the real clip.
+                // If SSE new_clip already swapped it, this will just replace it with the same data safely.
+                setClips(prev => {
+                    const exists = prev.some(c => c.id === clip.id);
+                    if (exists) {
+                        return prev.map(c => c.id === clip.id ? clip : c);
+                    }
+                    return [clip, ...prev.filter(c => !c.pending)].slice(0, 100);
+                });
             } catch (e) {
                 console.error('Failed to upload image', e);
                 setClips(prev => prev.map(c =>
