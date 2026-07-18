@@ -1,0 +1,24 @@
+{
+  "name": "clipoo-backend",
+  "version": "1.0.0",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.js",
+    "dev": "bun --hot run src/index.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1090.0",
+    "@aws-sdk/s3-request-presigner": "^3.1090.0",
+    "dotenv": "^17.4.2",
+    "hono": "^4.12.30",
+    "ioredis": "^5.11.1"
+  }
+}

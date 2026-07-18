@@ -1,0 +1,15 @@
+{
+  "name": "clipoo-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start:backend": "cd backend && ~/.bun/bin/bun run start",
+    "dev:backend": "cd backend && ~/.bun/bin/bun run dev",
+    "start:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run start:frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
