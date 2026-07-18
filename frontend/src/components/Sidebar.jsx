@@ -1,7 +1,7 @@
 import { NavLink, Link } from 'react-router-dom';
 import { Copy, MonitorSmartphone, Wifi, WifiOff, X } from 'lucide-react';
 
-export default function Sidebar({ connected, isOpen, close }) {
+export default function Sidebar({ connected, isOpen, close, installPrompt, setInstallPrompt }) {
     return (
         <>
             {isOpen && <div className="sidebar-overlay" onClick={close}></div>}
@@ -21,6 +21,36 @@ export default function Sidebar({ connected, isOpen, close }) {
                             <MonitorSmartphone size={18} /> Devices
                         </NavLink>
                     </div>
+                    {installPrompt && (
+                        <div style={{ marginTop: 24, padding: '0 16px' }}>
+                            <button
+                                onClick={async () => {
+                                    installPrompt.prompt();
+                                    const { outcome } = await installPrompt.userChoice;
+                                    if (outcome === 'accepted') {
+                                        setInstallPrompt(null);
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    background: 'var(--clr-accent)',
+                                    color: 'var(--clr-bg)',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    fontFamily: 'var(--font-display)'
+                                }}
+                            >
+                                <MonitorSmartphone size={16} /> Install App
+                            </button>
+                        </div>
+                    )}
                 </div>
                 
                 <div className={`status-indicator ${connected ? 'status-online' : 'status-offline'}`}>

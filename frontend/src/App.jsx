@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Workspace from './pages/Workspace';
@@ -24,11 +24,28 @@ function MainApp({ room }) {
     const { clips, addClip, deleteClip } = useClips(sseData);
     const { devices, myDeviceId, addDevice, removeDevice } = useDevices(sseData);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [installPrompt, setInstallPrompt] = useState(null);
+
+    // Listen for PWA install prompt
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault(); // Prevent automatic Chrome mini-infobar
+            setInstallPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
 
     return (
         <Router>
             <div id="app">
-                <Sidebar connected={connected} isOpen={sidebarOpen} close={() => setSidebarOpen(false)} />
+                <Sidebar 
+                    connected={connected} 
+                    isOpen={sidebarOpen} 
+                    close={() => setSidebarOpen(false)} 
+                    installPrompt={installPrompt}
+                    setInstallPrompt={setInstallPrompt}
+                />
                 <div id="main-content">
                     <header className="mobile-header">
                         <Link to="/" className="brand logo" style={{ textDecoration: 'none' }}>clipoo</Link>
