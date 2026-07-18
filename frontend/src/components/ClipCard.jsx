@@ -92,7 +92,7 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
         return (
             <div className="clip-image-wrapper">
                 <img
-                    src={clip.content}
+                    src={clip.content + '?v=1'}
                     alt="Clipped"
                     className="clip-image"
                     onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
@@ -169,7 +169,7 @@ export default function ClipCard({ clip, onDelete, isLatest }) {
                         <button className="lightbox-close" onClick={() => setLightboxOpen(false)}>
                             <X size={24} />
                         </button>
-                        <img src={clip.content} alt="Full size" className="lightbox-img" crossOrigin="anonymous" />
+                        <img src={clip.content + '?v=1'} alt="Full size" className="lightbox-img" crossOrigin="anonymous" />
                         <div className="lightbox-actions">
                             <button className="lightbox-btn" onClick={handleDownload}>
                                 <Download size={16} /> Download
