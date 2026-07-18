@@ -32,7 +32,13 @@ const PORT = process.env.PORT || 8001;
 
 const app = new Hono();
 
-app.use('*', cors());
+app.use('*', cors({
+    origin: '*',
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Room-ID', 'Accept'],
+    allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
+    exposeHeaders: ['Content-Length', 'X-Room-ID'],
+    maxAge: 600,
+}));
 
 // Routes
 app.route('/api/clip', clipsRoute);
