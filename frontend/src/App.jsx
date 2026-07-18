@@ -20,11 +20,15 @@ function App() {
 }
 
 function MainApp({ room }) {
-    const { connected, data: sseData } = useSSE(room);
-    const { clips, addClip, deleteClip } = useClips(sseData);
-    const { devices, myDeviceId, addDevice, removeDevice } = useDevices(sseData);
+    const { clips, handleSSE: handleClipsSSE, addClip, deleteClip } = useClips();
+    const { devices, myDeviceId, handleSSE: handleDevicesSSE, addDevice, removeDevice } = useDevices();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [installPrompt, setInstallPrompt] = useState(null);
+
+    const { connected } = useSSE(room, (data) => {
+        handleClipsSSE(data);
+        handleDevicesSSE(data);
+    });
 
     // Listen for PWA install prompt
     useEffect(() => {

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 
-export function useClips(sseData) {
+export function useClips() {
     const [clips, setClips] = useState([]);
 
-    useEffect(() => {
+    const handleSSE = (sseData) => {
         if (!sseData) return;
         
         switch (sseData.type) {
@@ -51,7 +51,7 @@ export function useClips(sseData) {
                 setClips(prev => prev.filter(c => c.id !== sseData.id));
                 break;
         }
-    }, [sseData]);
+    };
 
     const addClip = async (content, type = 'TEXT') => {
         const device = localStorage.getItem('clipoo_device_name') || 'Unknown';
@@ -128,5 +128,5 @@ export function useClips(sseData) {
         await apiFetch(`/api/clip/${id}`, { method: 'DELETE' });
     };
 
-    return { clips, addClip, deleteClip };
+    return { clips, handleSSE, addClip, deleteClip };
 }

@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API_BASE } from '../lib/api';
 
-export function useSSE(room) {
+export function useSSE(room, onMessage) {
     const [connected, setConnected] = useState(false);
-    const [data, setData] = useState(null); // Last received event data
+    const callbackRef = useRef(onMessage);
+
+    useEffect(() => {
+        callbackRef.current = onMessage;
+    }, [onMessage]);
 
     useEffect(() => {
         if (!room) return;
@@ -18,7 +22,9 @@ export function useSSE(room) {
 
             es.onmessage = (e) => {
                 try {
-                    setData(JSON.parse(e.data));
+                    if (callbackRef.current) {
+                        callbackRef.current(JSON.parse(e.data));
+                    }
                 } catch (err) {
                     console.error('SSE Parse Error:', err);
                 }
@@ -39,5 +45,5 @@ export function useSSE(room) {
         };
     }, [room]);
 
-    return { connected, data };
+    return { connected };
 }

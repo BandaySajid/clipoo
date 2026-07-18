@@ -36,7 +36,7 @@ export function useDevices(sseData) {
     }, []);
 
     // Handle SSE updates
-    useEffect(() => {
+    const handleSSE = (sseData) => {
         if (!sseData) return;
         
         switch (sseData.type) {
@@ -59,7 +59,7 @@ export function useDevices(sseData) {
                 });
                 break;
         }
-    }, [sseData]);
+    };
 
     const addDevice = async (name, type) => {
         await apiFetch('/api/devices', {
@@ -73,5 +73,5 @@ export function useDevices(sseData) {
         await apiFetch(`/api/devices/${id}`, { method: 'DELETE' });
     };
 
-    return { devices, myDeviceId, addDevice, removeDevice };
+    return { devices, myDeviceId, handleSSE, addDevice, removeDevice };
 }
