@@ -12,63 +12,58 @@ app.post('/', async (c) => {
     const body = await c.req.json();
     const id = nanoId();
     const created_at = Date.now();
-    const content = body.content;
     const type = body.type;
+    const content = body.content;
+    const device = body.device;
 
-    const clip = {
-        id,
-        type,
-        content, // data URL for images initially
-        r2_key: null,
-        device: body.device,
-        created_at,
-        room,
-        uploading: type === 'IMAGE' && content?.startsWith('data:'),
-    };
-
-    // 1. Push to cache and broadcast immediately — all devices see it NOW
-    await pushClipToCache(room, clip);
-    broadcast(room, { type: 'new_clip', clip });
-
-    // 2. If it's an image with a data URL, upload to R2 in the background
     if (type === 'IMAGE' && content?.startsWith('data:')) {
-        (async () => {
-            try {
-                const [, meta, b64] = content.match(/^data:([^;]+);base64,(.+)$/) || [];
-                if (!meta || !b64) return;
+        // Step 1: Broadcast a lightweight "uploading" placeholder to all devices immediately.
+        // NO image data goes through SSE — just metadata.
+        const placeholder = { id, type: 'IMAGE', content: null, device, created_at, room, uploading: true };
+        broadcast(room, { type: 'clip_uploading', clip: placeholder });
 
-                const ext = meta.split('/')[1] || 'png';
-                const r2_key = `images/${id}.${ext}`;
-                const buffer = Buffer.from(b64, 'base64');
+        // Step 2: Upload to R2 (this is the slow part — happens server-side, not client-side)
+        try {
+            const [, meta, b64] = content.match(/^data:([^;]+);base64,(.+)$/) || [];
+            if (!meta || !b64) return c.json({ success: false, error: 'Invalid image data' }, 400);
 
-                const r2Url = await uploadToR2(r2_key, buffer, meta);
+            const ext = meta.split('/')[1] || 'png';
+            const r2_key = `images/${id}.${ext}`;
+            const buffer = Buffer.from(b64, 'base64');
+            const r2Url = await uploadToR2(r2_key, buffer, meta);
 
-                // 3. Update the clip with the real R2 URL — broadcast the swap
-                const updatedClip = { ...clip, content: r2Url, r2_key, uploading: false };
-                await updateClipInCache(room, updatedClip);
-                broadcast(room, { type: 'update_clip', clip: updatedClip });
+            // Step 3: R2 upload done. Broadcast the real clip with the CDN URL.
+            const clip = { id, type: 'IMAGE', content: r2Url, r2_key, device, created_at, room, uploading: false };
+            await pushClipToCache(room, clip);
+            broadcast(room, { type: 'new_clip', clip });
 
-                // 4. Persist to D1 with final R2 URL
-                d1Query(
-                    'INSERT INTO clips (id, type, content, r2_key, device, created_at, room) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [id, type, r2Url, r2_key, body.device, created_at, room]
-                ).catch(e => console.error('[D1] clip insert error:', e.message));
+            d1Query(
+                'INSERT INTO clips (id, type, content, r2_key, device, created_at, room) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [id, type, r2Url, r2_key, device, created_at, room]
+            ).catch(e => console.error('[D1] clip insert error:', e.message));
 
-            } catch (e) {
-                console.error('[R2] Background upload failed:', e.message);
-                // Mark as failed so clients know
-                broadcast(room, { type: 'update_clip', clip: { ...clip, uploading: false, failed: true } });
-            }
-        })();
+            return c.json({ success: true, clip });
+
+        } catch (e) {
+            console.error('[R2] Upload failed:', e.message);
+            // Tell all clients the upload failed
+            broadcast(room, { type: 'clip_upload_failed', id });
+            return c.json({ success: false, error: 'Upload failed' }, 500);
+        }
+
     } else {
-        // Text clip — persist to D1 immediately
+        // Text clip — fast path
+        const clip = { id, type, content, r2_key: null, device, created_at, room };
+        await pushClipToCache(room, clip);
+        broadcast(room, { type: 'new_clip', clip });
+
         d1Query(
             'INSERT INTO clips (id, type, content, r2_key, device, created_at, room) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [id, type, content, null, body.device, created_at, room]
+            [id, type, content, null, device, created_at, room]
         ).catch(e => console.error('[D1] clip insert error:', e.message));
-    }
 
-    return c.json({ success: true, clip });
+        return c.json({ success: true, clip });
+    }
 });
 
 app.delete('/:id', async (c) => {
