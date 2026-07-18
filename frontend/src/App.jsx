@@ -7,7 +7,8 @@ import Setup from './pages/Setup';
 import { useSSE } from './hooks/useSSE';
 import { useClips } from './hooks/useClips';
 import { useDevices } from './hooks/useDevices';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 function App() {
     const [room, setRoom] = useState(localStorage.getItem('clipoo_room') || null);
@@ -24,6 +25,7 @@ function MainApp({ room }) {
     const { devices, myDeviceId, handleSSE: handleDevicesSSE, addDevice, removeDevice } = useDevices();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [installPrompt, setInstallPrompt] = useState(null);
+    const [autoCopied, setAutoCopied] = useState(false);
 
     const { connected } = useSSE(room, (data) => {
         handleClipsSSE(data);
@@ -38,6 +40,30 @@ function MainApp({ room }) {
         };
         window.addEventListener('beforeinstallprompt', handler);
         return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    // Auto-copy on text selection
+    useEffect(() => {
+        const handleSelectionEnd = () => {
+            const selectedText = window.getSelection().toString().trim();
+            if (selectedText && selectedText.length > 0) {
+                // Check if user is actually selecting text (not just clicking)
+                navigator.clipboard.writeText(selectedText).then(() => {
+                    setAutoCopied(true);
+                    setTimeout(() => setAutoCopied(false), 2000);
+                }).catch(err => {
+                    console.error('Auto-copy failed:', err);
+                });
+            }
+        };
+
+        document.addEventListener('mouseup', handleSelectionEnd);
+        document.addEventListener('touchend', handleSelectionEnd);
+
+        return () => {
+            document.removeEventListener('mouseup', handleSelectionEnd);
+            document.removeEventListener('touchend', handleSelectionEnd);
+        };
     }, []);
 
     return (
@@ -88,6 +114,19 @@ function MainApp({ room }) {
                         </Routes>
                     </div>
                 </div>
+
+                <AnimatePresence>
+                    {autoCopied && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                            className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-accent/30 text-foreground px-6 py-3 rounded-full font-sans font-semibold text-sm shadow-[0_10px_40px_rgba(0,229,255,0.2)] z-[10000] flex items-center gap-2 pointer-events-none"
+                        >
+                            <Check size={16} className="text-accent" /> Selection copied!
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </Router>
     );
