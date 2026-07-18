@@ -7,7 +7,7 @@ import Setup from './pages/Setup';
 import { useSSE } from './hooks/useSSE';
 import { useClips } from './hooks/useClips';
 import { useDevices } from './hooks/useDevices';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 function App() {
     const [room, setRoom] = useState(localStorage.getItem('clipoo_room') || null);
@@ -63,8 +63,8 @@ function MainApp({ room }) {
                             <img src="/logo.svg" alt="clipoo logo" className="w-6 h-6 drop-shadow-[0_0_10px_rgba(0,229,255,0.2)]" />
                             <span className="font-mono font-bold text-xl tracking-tighter text-foreground drop-shadow-sm">clipoo</span>
                         </Link>
-                        <button className="text-foreground/80 hover:text-accent transition-colors btn-tactile" onClick={() => setSidebarOpen(true)}>
-                            <Menu size={24} />
+                        <button className="text-foreground/80 hover:text-accent transition-colors btn-tactile" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
                     </header>
 

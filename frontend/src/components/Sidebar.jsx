@@ -20,19 +20,16 @@ export default function Sidebar({ connected, isOpen, close, installPrompt, setIn
             <aside className={`
                 fixed md:static inset-y-0 left-0 z-50
                 w-64 glass-panel border-r border-white/5
-                flex flex-col justify-between p-6
+                flex flex-col justify-between p-6 pt-24 md:pt-6
                 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
                 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
             `}>
                 <div>
-                    <div className="flex items-center justify-between mb-12">
+                    <div className="hidden md:flex items-center justify-between mb-12">
                         <Link to="/" onClick={close} className="flex items-center gap-3 decoration-none group">
                             <img src="/logo.svg" alt="clipoo logo" className="w-8 h-8 drop-shadow-[0_0_10px_rgba(0,229,255,0.2)] group-hover:drop-shadow-[0_0_15px_rgba(0,229,255,0.4)] transition-all" />
                             <span className="font-mono font-bold text-2xl tracking-tighter text-foreground drop-shadow-sm">clipoo</span>
                         </Link>
-                        <button className="md:hidden text-foreground/50 hover:text-foreground transition-colors" onClick={close}>
-                            <X size={24} />
-                        </button>
                     </div>
 
                     <nav className="flex flex-col gap-2">
