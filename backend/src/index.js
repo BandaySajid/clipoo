@@ -33,7 +33,7 @@ const PORT = process.env.PORT || 8001;
 const app = new Hono();
 
 app.use('*', cors({
-    origin: (origin) => origin || '*',
+    origin: 'https://clip.sajidbanday.me',
     credentials: true,
     allowHeaders: ['Content-Type', 'Authorization', 'X-Room-ID', 'Accept'],
     allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
