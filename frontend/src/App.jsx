@@ -10,6 +10,46 @@ import { useDevices } from './hooks/useDevices';
 import { Menu, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+async function copyClipToClipboard(clip) {
+    if (clip.type === 'TEXT') {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(clip.content);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = clip.content;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+        }
+    } else if (clip.type === 'IMAGE' && clip.content) {
+        if (!navigator.clipboard?.write) {
+            await navigator.clipboard.writeText(clip.content);
+            return;
+        }
+        const blobPromise = fetch(clip.content + '?cors=1')
+            .then(r => r.blob())
+            .then(blob => new Promise((resolve, reject) => {
+                if (blob.type === 'image/png') return resolve(blob);
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    canvas.getContext('2d').drawImage(img, 0, 0);
+                    canvas.toBlob(resolve, 'image/png');
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(blob);
+            }));
+
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blobPromise })
+        ]);
+    }
+}
+
 function App() {
     const [room, setRoom] = useState(localStorage.getItem('clipoo_room') || null);
     
@@ -26,11 +66,54 @@ function MainApp({ room }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [installPrompt, setInstallPrompt] = useState(null);
     const [autoCopied, setAutoCopied] = useState(false);
+    const [pendingCopyClip, setPendingCopyClip] = useState(null);
+    const [syncToastMessage, setSyncToastMessage] = useState('');
+
+    const attemptCopy = (clip, isFromFocus = false) => {
+        copyClipToClipboard(clip)
+            .then(() => {
+                setSyncToastMessage(`Synced: Copied from ${clip.device}!`);
+                setPendingCopyClip(null);
+                setTimeout(() => setSyncToastMessage(''), 3000);
+            })
+            .catch(err => {
+                console.warn('Auto-copy failed, queueing clip:', err);
+                if (!isFromFocus) {
+                    setPendingCopyClip(clip);
+                }
+            });
+    };
 
     const { connected } = useSSE(room, (data) => {
         handleClipsSSE(data);
         handleDevicesSSE(data);
+
+        if (data && data.type === 'new_clip') {
+            const clip = data.clip;
+            const currentDeviceName = localStorage.getItem('clipoo_device_name');
+            if (clip && clip.device !== currentDeviceName) {
+                // If it's a text clip, or if it's an image clip that is fully uploaded
+                if (clip.type === 'TEXT' || (clip.type === 'IMAGE' && !clip.uploading && !clip.pending)) {
+                    attemptCopy(clip);
+                }
+            }
+        }
     });
+
+    // Listen for tab focus/visibility change to trigger pending sync copies
+    useEffect(() => {
+        const handleFocus = () => {
+            if (pendingCopyClip && document.visibilityState === 'visible') {
+                attemptCopy(pendingCopyClip, true);
+            }
+        };
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleFocus);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleFocus);
+        };
+    }, [pendingCopyClip]);
 
     // Listen for PWA install prompt
     useEffect(() => {
@@ -124,6 +207,34 @@ function MainApp({ room }) {
                             className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-accent/30 text-foreground px-6 py-3 rounded-full font-sans font-semibold text-sm shadow-[0_10px_40px_rgba(0,229,255,0.2)] z-[10000] flex items-center gap-2 pointer-events-none"
                         >
                             <Check size={16} className="text-accent" /> Selection copied!
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {syncToastMessage && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                            className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-accent/30 text-foreground px-6 py-3 rounded-full font-sans font-semibold text-sm shadow-[0_10px_40px_rgba(0,229,255,0.2)] z-[10000] flex items-center gap-2 pointer-events-none"
+                        >
+                            <Check size={16} className="text-accent" /> {syncToastMessage}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {pendingCopyClip && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                            onClick={() => attemptCopy(pendingCopyClip)}
+                            className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-accent/10 hover:bg-accent/25 backdrop-blur-md border border-accent/30 text-accent px-6 py-4 rounded-2xl font-sans font-semibold text-sm shadow-[0_10px_40px_rgba(0,229,255,0.25)] z-[10000] flex items-center gap-3 cursor-pointer transition-all duration-200"
+                        >
+                            <div className="w-2 h-2 rounded-full bg-accent animate-ping" />
+                            <span>New clip from {pendingCopyClip.device}! Tap to copy.</span>
                         </motion.div>
                     )}
                 </AnimatePresence>
